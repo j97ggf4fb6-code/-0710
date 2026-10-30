@@ -75,7 +75,8 @@ body{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 <script>
-const T=THREE,$=id=>document.getElementById(id),rnd=Math.random;
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const T=THREE,$=id=>document.getElementById(id);let rnd=mulberry(20251);
 const R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
 const S=new T.Scene();S.fog=new T.Fog(0xc4ccd2,220,620);
 const C=new T.PerspectiveCamera(68,innerWidth/innerHeight,0.1,900);
@@ -147,7 +148,7 @@ function mkTitanOld(x,z,runner){const g=new T.Group(),m=sk[Math.floor(rnd()*4)],
  const o={g,up,aR:arm(3.4),aL:arm(-3.4),lR:leg(1.2),lL:leg(-1.2),s,runner,sp:(runner?7:3+rnd()*1.4)+wave*.25,st:0,tm:0,cd:1.5,ph:rnd()*6,dead:0,dt:0,nw:new T.Vector3()};
  mk(BG,m,4,2,2.5,0,6.5,0,g);mk(shG,shM,1,1,1,0,.06,0,g).scale.set(5,1,5);
  g.scale.setScalar(s);g.position.set(x,0,z);g.rotation.y=Math.PI/2*3;S.add(g);return o}
-function spawn(){wave++;const n=Math.min(10,4+wave*2);for(let i=0;i<n;i++){let x,z;if(i<n/2){x=330+rnd()*14;z=(i-n/4)*14+(rnd()-.5)*6}else{do{const a=rnd()*6.283,r=40+rnd()*230;x=Math.cos(a)*r;z=Math.sin(a)*r}while(Math.hypot(x-P.p.x,z-P.p.z)<70)}titans.push(bigify(mkTitan(x,z,wave>1&&rnd()<.3)))}for(let k=0;k<2;k++){const a=rnd()*6.283,r=60+rnd()*40;let x=P.p.x+Math.cos(a)*r,z=P.p.z+Math.sin(a)*r;const rr=Math.hypot(x,z);if(rr>540){x*=540/rr;z*=540/rr}titans.push(bigify(mkTitan(x,z,false)))}
+function spawn(){if(NETG)return;wave++;const n=Math.min(10,4+wave*2);for(let i=0;i<n;i++){let x,z;if(i<n/2){x=330+rnd()*14;z=(i-n/4)*14+(rnd()-.5)*6}else{do{const a=rnd()*6.283,r=40+rnd()*230;x=Math.cos(a)*r;z=Math.sin(a)*r}while(Math.hypot(x-P.p.x,z-P.p.z)<70)}spawnTitan(x,z,wave>1&&Math.random()<.3)}for(let k=0;k<2;k++){const a=rnd()*6.283,r=60+rnd()*40;let x=P.p.x+Math.cos(a)*r,z=P.p.z+Math.sin(a)*r;const rr=Math.hypot(x,z);if(rr>540){x*=540/rr;z*=540/rr}spawnTitan(x,z,false)}
 if(wave%5==0){const b=bigify(mkTitan(340,0,false));b.s=2.9;b.g.scale.setScalar(2.9);b.hp=4;b.sp=2.4;toast('超大型が現れた！');titans.push(b)}toast('巨人の群れが侵入！')}
 // 入力
 let yaw=-Math.PI/2,pitch=.35,jx=0,jy=0,gasHeld=false,stick=null,look=null;
@@ -181,7 +182,7 @@ function strike(t){const g=t.g,s=t.s,fx=Math.sin(g.rotation.y),fz=Math.cos(g.rot
 function kill(t){t.dead=1;combo=cT>0?combo+1:1;cT=5;if((score+1)%5==0&&P.hp<7)P.hp++;slow=.3;P.tg=Math.min(100,P.tg+20);sfx(520,.3,'triangle',.2);navigator.vibrate&&navigator.vibrate(40);score++;P.gas=Math.min(100,P.gas+30);puff(t.nw,10,1.4);flash('#fff')}
 const V=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 let lockT=null,sid=0,ttT=0;P.sd=V(0,0,-1);bindBtn($('lk'),lockPress,()=>{});
-function toast(m){const e=$('tt');e.textContent=m;e.style.opacity=1;clearTimeout(ttT);ttT=setTimeout(()=>e.style.opacity=0,900)}
+let muteT=0;function toast(m){if(muteT)return;const e=$('tt');e.textContent=m;e.style.opacity=1;clearTimeout(ttT);ttT=setTimeout(()=>e.style.opacity=0,900)}
 // 多様な家
 const rfc=[0xffffff,0xd8c0b0,0x8a929c,0xd9a97a],roofG=roofT.clone();roofG.repeat.set(.35,.35);roofG.needsUpdate=true;
 function part(cx,cz,w,d,h,k,rt,rh,ci){const t=wallTex[k].clone();t.needsUpdate=true;t.repeat.set(Math.max(1,Math.round(w/3.5)),Math.max(1,Math.round(h/7)));
@@ -227,7 +228,7 @@ function mkTitanV2(x,z,runner){const g=new T.Group(),m=sk[Math.floor(rnd()*4)],s
  const leg=(x,i)=>{const l=new T.Group();l.position.set(x,6.5,0);g.add(l);mk(BG,lm[i],2,3.3,2.2,0,-1.65,0,l);const k=new T.Group();k.position.y=-3.3;l.add(k);mk(BG,lm[i],1.8,3.2,2,0,-1.6,0,k);mk(BG,lm[i],2.1,.7,3.2,0,-3.2,.7,k);l.k=k;return l};
  const aR=arm(3.4),aL=arm(-3.4);mk(BG,m,4,2,2.5,0,6.5,0,g);mk(shG,shM,5,1,5,0,.06,0,g);g.scale.setScalar(s);g.position.set(x,0,z);g.rotation.y=Math.PI*1.5;S.add(g);
  return{g,up,hd,aR,aL,eR:aR.e,eL:aL.e,lg:[leg(1.2,0),leg(-1.2,1)],lm,em,skin:m.color,cut:[0,0],blind:0,lastE:-1,lastN:-1,hp:1,lastL:[-1,-1],s,runner,sp:(runner?7:3+rnd()*1.4)+wave*.25,st:0,at:1,tm:0,cd:1.5,ph:rnd()*6,dead:0,dt:0,aim:-1,hit:0,nw:V(),ew:V(),lw:[V(),V()]}}
-function titanStep(dt,pc){const p=P.p,gy=P.p.y-gh(P.p.x,P.p.z),sc=pc.clone().addScaledVector(P.sd,2.5);
+function titanStep(dt,pc){TG=NET.open&&!NETG&&RM.on?SOL.concat([RMT]):SOL;const p=P.p,gy=P.p.y-gh(P.p.x,P.p.z),sc=pc.clone().addScaledVector(P.sd,2.5);
  for(const t of titans){const g=t.g,s=t.s;
   if(t.dead){t.dt+=dt;g.rotation.x=Math.min(t.dt*1.1,1.45);if(t.dt>1.2)g.position.y-=3*dt;if(rnd()<dt*14)puff(g.localToWorld(V(0,9,0)),1,1.5);if(P.held===t)P.held=null;if(t.eatC){if(t.eatC.sol)t.eatC.sol.ct=3;t.eatC.carried=0;t.eatC=null}continue}
   if(!Number.isFinite(t.sp))t.sp=3.5;if(!Number.isFinite(g.position.x+g.position.z))g.position.set(330,0,0);t.px=g.position.x;t.pz=g.position.z;t.blind=Math.max(0,t.blind-dt);if(t.wasB&&t.blind<=0){t.em.color.setHex(0xf2eee6);t.wasB=0}
@@ -236,7 +237,7 @@ function titanStep(dt,pc){const p=P.p,gy=P.p.y-gh(P.p.x,P.p.z),sc=pc.clone().add
   const kneel=t.cut[0]>0&&t.cut[1]>0,limp=t.cut[0]>0||t.cut[1]>0,blind=t.blind>0;
   const dx=p.x-g.position.x,dz=p.z-g.position.z,L=Math.hypot(dx,dz)||1;
   let cvT=t.eatC&&t.eatC.alive?t.eatC:null;if(!cvT&&t.st==0&&!blind&&!kneel){let bd=70*s;for(const c of CV)if(c.alive&&!c.carried){const d=Math.hypot(c.x-g.position.x,c.z-g.position.z);if(d<bd&&d<L*.9){bd=d;cvT=c}}}
-  let sT=null;if(!cvT&&t.st==0&&!blind){let bd=Math.min(L*.9,70*s);for(const q of SOL)if(q.alive){const d=Math.hypot(q.p.x-g.position.x,q.p.z-g.position.z);if(d<bd){bd=d;sT=q}}}
+  let sT=null;if(!cvT&&t.st==0&&!blind){let bd=Math.min(L*.9,70*s);for(const q of TG)if(q.alive){const d=Math.hypot(q.p.x-g.position.x,q.p.z-g.position.z);if(d<bd){bd=d;sT=q}}}
   let tdx=cvT?cvT.x-g.position.x:sT?sT.p.x-g.position.x:dx,tdz=cvT?cvT.z-g.position.z:sT?sT.p.z-g.position.z:dz;
   {const rt=Math.hypot(g.position.x,g.position.z),tr=Math.hypot(g.position.x+tdx,g.position.z+tdz),lane=Math.abs(g.position.z)<=10;if(rt>=300&&tr<297){tdx=(lane?285:318)-g.position.x;tdz=-g.position.z}else if(rt<300&&tr>303){tdx=(lane?320:282)-g.position.x;tdz=-g.position.z}}
   if(blind)g.rotation.y+=Math.sin(t.ph*.6)*dt*1.2;else{let da=Math.atan2(tdx,tdz)-g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));const tn=(t.st==0?2.4:t.st==1?2.2:.5)*dt;g.rotation.y+=Math.max(-tn,Math.min(tn,da))}
@@ -262,7 +263,7 @@ function titanStep(dt,pc){const p=P.p,gy=P.p.y-gh(P.p.x,P.p.z),sc=pc.clone().add
   {const gx=g.position.x,gz=g.position.z,rr=Math.hypot(gx,gz)||1,md=3.2*s+1,lane=gx>0&&Math.abs(gz)<17;if(Math.abs(rr-300)<md&&!lane){const n=Math.hypot(t.px,t.pz)<300?300-md:300+md;g.position.x=gx*n/rr;g.position.z=gz*n/rr}}
   for(const o of titans){if(o===t||o.dead)continue;const ox=g.position.x-o.g.position.x,oz=g.position.z-o.g.position.z,od=Math.hypot(ox,oz)||.1,mn=3.2*(s+o.s);if(od<mn){g.position.x+=ox/od*(mn-od)*.5;g.position.z+=oz/od*(mn-od)*.5}}
   if(t.st==1&&!t.ro){t.ro=1;roar(t)}if(t.st!=1)t.ro=0;if(rnd()<dt*2.5)puff(t.nw,1,.45,0xffffff);t.up.rotation.z=Math.sin(t.ph)*(t.runner?.12:.05);t.hd.rotation.y=blind?Math.sin(t.ph*9)*.35:Math.sin(t.ph*.3)*.25;t.up.scale.y=1+Math.sin(performance.now()/500+t.ph)*.02;t.hd.rotation.z=Math.sin(t.ph*.7)*.12;t.hd.rotation.x=Math.sin(t.ph*.5)*.08;g.updateMatrixWorld(true);t.up.localToWorld(t.nw.copy(t.np));t.hd.localToWorld(t.ew.set(0,.35,1.8));t.lg.forEach((l,i)=>l.localToWorld(t.lw[i].set(0,-3.3,0)));if(t.frag&&P.sl>0&&[t.nw,t.ew,t.lw[0],t.lw[1],V(g.position.x,g.position.y+6*s,g.position.z)].some(q=>hitD(pc,q)<2+s)){kill(t);toast('脆い！');continue}
-  if(t.st==2){const hw=t.eR.localToWorld(V(0,-3.6,0));for(const q of SOL)if(q.alive&&q.inv<=0&&hw.distanceTo(V(q.p.x,q.p.y+1,q.p.z))<6.4*s+2){if(!t.eatC&&t.st!=4&&rnd()<.5&&q.p.y-gh(q.p.x,q.p.z)<6){q.alive=0;q.rt=10;q.ct=0;q.a=null;q.rp.visible=false;q.v.set(0,0,0);t.eatC={g:q.h.g,x:q.p.x,z:q.p.z,alive:1,carried:1,sol:q};t.st=4;t.tm=1.6;scream(q.p.x,q.p.z)}else killSol(q,Math.sin(g.rotation.y),Math.cos(g.rotation.y))}}
+  if(t.st==2){const hw=t.eR.localToWorld(V(0,-3.6,0));for(const q of TG)if(q.alive&&q.inv<=0&&hw.distanceTo(V(q.p.x,q.p.y+1,q.p.z))<6.4*s+2){if(q.remote){q.inv=1.8;netSend({t:'hurt',fx:Math.sin(g.rotation.y),fz:Math.cos(g.rotation.y)})}else if(!t.eatC&&t.st!=4&&rnd()<.5&&q.p.y-gh(q.p.x,q.p.z)<6){q.alive=0;q.rt=10;q.ct=0;q.a=null;q.rp.visible=false;q.v.set(0,0,0);t.eatC={g:q.h.g,x:q.p.x,z:q.p.z,alive:1,carried:1,sol:q};t.st=4;t.tm=1.6;scream(q.p.x,q.p.z)}else killSol(q,Math.sin(g.rotation.y),Math.cos(g.rotation.y))}}
   if(t.st==2&&!t.hit){const ry=g.rotation.y;
    if(t.at!=2){if(t.eR.localToWorld(V(0,-3.6,0)).distanceTo(pc)<6.4*s+1+(P.tf?5*P.tm.s:0)){t.hit=1;if(t.at==5&&!P.tf&&P.inv<=0&&!P.held){P.held=t;P.mash=0;P.a=null;rope.visible=false;t.holding=1;t.st=5;t.tm=2.2;t.eatP=rnd()<.5;toast('掴まれた！ 「斬る」連打で脱出！')}else hurt(Math.sin(ry),Math.cos(ry))}}
    else{const f=t.lg[0].localToWorld(V(0,-6.4,.7));if(Math.hypot(f.x-p.x,f.z-p.z)<7*s+(P.tf?4*P.tm.s:0)&&gy<5){t.hit=1;puff(f,6,2.5,0xb8aa94);shake=.5;hurt(Math.sin(ry),Math.cos(ry))}}}
@@ -355,7 +356,7 @@ function buildForm(k){const f=F[k],t=mkTitan(P.p.x,P.p.z,false,f);t.skin.setHex(
  if(k==2){t.aR.scale.y=t.aL.scale.y=1.5;t.bl=.45}
  if(k==3){const ar=M(0x6f6a60);mk(BG,ar,5.2,3.4,3.2,0,3.4,.2,t.up);mk(BG,ar,2.4,1.2,2.8,3.2,5.7,0,t.up);mk(BG,ar,2.4,1.2,2.8,-3.2,5.7,0,t.up);mk(SG,ar,1.9,1.5,1.95,0,.7,-.1,t.hd);[t.eR,t.eL].forEach(e=>mk(BG,ar,1.7,2.8,1.7,0,-1.65,0,e));t.lg.forEach(l=>mk(BG,ar,2.4,2.6,2.6,0,-1.6,0,l))}
  skinize(t);t.g.traverse(o=>{if(o.isMesh&&o.material!==shM)o.castShadow=true});return t}
-function doTransform(){if(!run||P.tf||P.tg<100)return;lightning(P.p.x,P.p.y,P.p.z);P.tf=1;P.tg=0;P.tt=30;P.th=F[form].hp;P.ac=0;P.ap=0;P.a=null;rope.visible=false;P.v.set(0,0,0);P.tm=buildForm(form);H.g.visible=false;puff(V(P.p.x,P.p.y+3,P.p.z),20,4);shake=1.2;flash('#fff');sfx(60,.8,'sawtooth',.4);toast('巨人化！')}
+function doTransform(){if(NET.open&&!P.tf){toast('オンライン中は巨人化できません');return}if(!run||P.tf||P.tg<100)return;lightning(P.p.x,P.p.y,P.p.z);P.tf=1;P.tg=0;P.tt=30;P.th=F[form].hp;P.ac=0;P.ap=0;P.a=null;rope.visible=false;P.v.set(0,0,0);P.tm=buildForm(form);H.g.visible=false;puff(V(P.p.x,P.p.y+3,P.p.z),20,4);shake=1.2;flash('#fff');sfx(60,.8,'sawtooth',.4);toast('巨人化！')}
 function endTransform(){S.remove(P.tm.g);P.tf=0;H.g.visible=true;puff(V(P.p.x,P.p.y+3,P.p.z),12,3);PR.forEach(q=>S.remove(q.m));PR.length=0;P.inv=1;P.p.y=gh(P.p.x,P.p.z);toast('巨人化解除')}
 function nearT(){let b=null,bd=1e9;for(const t of titans)if(!t.dead){const d=Math.hypot(t.g.position.x-P.p.x,t.g.position.z-P.p.z);if(d<bd){bd=d;b=t}}return b}
 function hitT(t,d){t.hp-=d;puff(t.nw,6,2,0xffffff);if(t.hp<=0){kill(t);toast('撃破！')}else{t.st=3;t.tm=1;toast('ひるんだ！')}}
@@ -414,7 +415,7 @@ function mkCivOld(x,z,ax,st){const g=new T.Group(),sk2=M(0xf0c8a8),cl=M(cvCols[M
  const l1=new T.Group(),l2=new T.Group();l1.position.set(-.12,.75,0);l2.position.set(.12,.75,0);g.add(l1,l2);mk(BG,pn2,.17,.75,.2,0,-.37,0,l1);mk(BG,pn2,.17,.75,.2,0,-.37,0,l2);
  g.scale.setScalar(1.35);g.position.set(x,gh(x,z),z);S.add(g);
  return{g,l1,l2,x,z,ax,st,dir:rnd()<.5?1:-1,sp:2+rnd()*1.5,ph:rnd()*6,alive:1,carried:0,cell:Math.floor(((ax?z:x)-18)/36)}}
-function spawnCiv(){const ax=rnd()<.5?0:1,st=18+36*(Math.floor(rnd()*15)-7),al=(rnd()-.5)*480,x=ax?st:al,z=ax?al:st;if(Math.hypot(x,z)>262||(Math.abs(x)<54&&Math.abs(z)<54))return;CV.push(mkCiv(x,z,ax,st))}
+function spawnCiv(){if(NETG)return;const ax=rnd()<.5?0:1,st=18+36*(Math.floor(rnd()*15)-7),al=(rnd()-.5)*480,x=ax?st:al,z=ax?al:st;if(Math.hypot(x,z)>262||(Math.abs(x)<54&&Math.abs(z)<54))return;CV.push(mkCiv(x,z,ax,st))}
 function civStep(dt){
  for(let i=CV.length-1;i>=0;i--)if(!CV[i].alive)CV.splice(i,1);
  if(CV.length<28&&rnd()<dt*.6)spawnCiv();
@@ -425,10 +426,10 @@ function civStep(dt){
   const cc=c.ax?c.z:c.x,cell=Math.floor((cc-18)/36);
   if(cell!=c.cell){c.cell=cell;if(!nt&&rnd()<.35){const k=Math.round((cc-18)/36);if(c.ax){c.z=18+36*k;c.ax=0}else{c.x=18+36*k;c.ax=1}c.dir=rnd()<.5?1:-1;c.cell=Math.floor(((c.ax?c.z:c.x)-18)/36)}}
   {const rr=Math.hypot(c.x,c.z);if(rr>262){c.x*=262/rr;c.z*=262/rr;c.dir=-c.dir}}if(Math.abs(c.x)<54&&Math.abs(c.z)<54)c.dir=(c.ax?c.z:c.x)>=0?1:-1;
-  c.ph+=dt*sp*3;const q=Math.sin(c.ph)*.7;c.l1.rotation.x=q;c.l2.rotation.x=-q;c.a1.rotation.x=nt?-2.4+Math.sin(c.ph)*.4:-q*.8;c.a2.rotation.x=nt?-2.4-Math.sin(c.ph)*.4:q*.8;
+  c.ph+=dt*sp*3;const q=Math.sin(c.ph)*.7;c.l1.rotation.x=q;c.l2.rotation.x=-q;c.fl=nt?1:0;c.a1.rotation.x=nt?-2.4+Math.sin(c.ph)*.4:-q*.8;c.a2.rotation.x=nt?-2.4-Math.sin(c.ph)*.4:q*.8;
   c.g.position.set(c.x,gh(c.x,c.z),c.z);c.g.rotation.y=c.ax?(c.dir>0?0:Math.PI):(c.dir>0?Math.PI/2:-Math.PI/2)}}
 function ensureAction(dt){let nd=1e9;for(const t of titans)if(!t.dead)nd=Math.min(nd,Math.hypot(t.g.position.x-P.p.x,t.g.position.z-P.p.z));
- idleT=nd>110?idleT+dt:0;if(idleT>6&&titans.length<18){idleT=0;const a=rnd()*6.283,r=70+rnd()*30;let x=P.p.x+Math.cos(a)*r,z=P.p.z+Math.sin(a)*r;const rr=Math.hypot(x,z);if(rr>540){x*=540/rr;z*=540/rr}titans.push(bigify(mkTitan(x,z,false)));toast('巨人が接近！')}}
+ idleT=nd>110?idleT+dt:0;if(idleT>6&&titans.length<18){idleT=0;const a=rnd()*6.283,r=70+rnd()*30;let x=P.p.x+Math.cos(a)*r,z=P.p.z+Math.sin(a)*r;const rr=Math.hypot(x,z);if(rr>540){x*=540/rr;z*=540/rr}spawnTitan(x,z,false);toast('巨人が接近！')}}
 let mapOpen=false;const mp=$('mp'),TM=[];
 for(let i=0;i<14;i++){const d=document.createElement('div');d.className='tm';document.body.appendChild(d);TM.push(d)}
 addEventListener('error',e=>{const d=$('tt');d.textContent='ERR: '+e.message;d.style.opacity=1});
@@ -469,7 +470,7 @@ function armorize(t){t.arm=1;t.hp=3;t.sp=2.6+rnd()*.6;t.s=1.15+rnd()*.3;t.g.scal
 function colossalize(t){t.col=1;t.s=2.9+rnd()*.5;t.g.scale.setScalar(t.s);t.hp=4;t.sp=2.2;t.runner=false;t.skin.setHex(0xc2503f);t.lm.forEach(l=>l.color.setHex(0xc2503f));toast('超大型が出現！')}
 function infSpawn(dt){spT-=dt;wave=1+Math.floor(score/6);const al=titans.filter(t=>!t.dead).length,tg=Math.min(9,4+Math.floor(score/8));if(al<1&&spT>1)spT=1;
  if(spT<=0&&al<tg){spT=al<3?1.5:4.5+rnd()*3;let x,z;if(rnd()<.55){x=330+rnd()*14;z=(rnd()-.5)*60}else{const a=rnd()*6.283,r=90+rnd()*120;x=P.p.x+Math.cos(a)*r;z=P.p.z+Math.sin(a)*r;const rr=Math.hypot(x,z);if(rr>285&&rr<312){x*=262/rr;z*=262/rr}}
-  titans.push(bigify(mkTitan(x,z,rnd()<.12),wave))}}
+  spawnTitan(x,z,Math.random()<.12)}}
 const CG=new T.CylinderGeometry(.85,.62,1,10),CG2=new T.CylinderGeometry(.66,.46,1,10);
 function mkTitan(x,z,runner,fo){const g=new T.Group(),ty=fo?fo.ty:Math.floor(rnd()*5),fc=fo?fo.fc:(rnd()<.65?[0,2][Math.floor(rnd()*2)]:Math.floor(rnd()*4)),hs=fo?fo.hs:Math.floor(rnd()*4),s=(runner?.62:.72)+rnd()*.5,
  m=M([0xe8c9ae,0xdcb496,0xcfa58a,0xe3bf9f,0xf0d6c0,0xb88f78,0xd9b0a0][Math.floor(rnd()*7)]),lm=[m.clone(),m.clone()],em=wht.clone(),hm=M([0x2e2218,0x5a4630,0x1a1410,0xb8a070,0x8a8a88,0x6a3a22][Math.floor(rnd()*6)]),
@@ -525,7 +526,7 @@ const sunDir=V(-80,120,60).normalize(),sunD=new T.Mesh(SG,new T.MeshBasicMateria
 {const lp=M(0x2a2a2a),gl=M(0xffe9a0);for(let i=-7;i<=7;i++)for(let j=-7;j<=7;j++){if((i+j)&1)continue;const x=18+36*i+6.5,z=18+36*j+6.5;if(Math.hypot(x,z)>270||(Math.abs(x)<56&&Math.abs(z)<56)||B.some(b=>Math.abs(x-b.x)<b.w+2&&Math.abs(z-b.z)<b.d+2))continue;const y=gh(x,z),a=new T.Mesh(BG,lp),b=new T.Mesh(BG,gl);a.scale.set(.25,5,.25);a.position.set(x,y+2.5,z);b.scale.set(.7,.7,.7);b.position.set(x,y+5.3,z);S.add(a,b)}}
 {const cols=[0xb03a2e,0x2e5a9a,0xe8e0c8,0x3a8a4a],tb=M(0x6a4a2a);for(let n=0;n<40;n++){const i=Math.floor(rnd()*13)-6,j=Math.floor(rnd()*13)-6,x=18+36*i+(rnd()<.5?7.5:-7.5),z=18+36*j+(rnd()-.5)*18;if(Math.hypot(x,z)>250||(Math.abs(x)<60&&Math.abs(z)<60)||B.some(b=>Math.abs(x-b.x)<b.w+3&&Math.abs(z-b.z)<b.d+3))continue;const y=gh(x,z),t=new T.Mesh(BG,tb),c=new T.Mesh(BG,M(cols[n%4])),p1=new T.Mesh(BG,tb),p2=new T.Mesh(BG,tb);t.scale.set(1.6,1,3);t.position.set(x,y+.5,z);c.scale.set(2.2,.15,3.6);c.position.set(x,y+2.6,z);p1.scale.set(.12,2.6,.12);p2.scale.set(.12,2.6,.12);p1.position.set(x-.9,y+1.3,z-1.7);p2.position.set(x+.9,y+1.3,z+1.7);S.add(t,c,p1,p2)}}
 let lite=false;$('lq').onclick=()=>{lite=!lite;$('lq').textContent=lite?'画質：軽量（低スペック向け）':'画質：標準'};
-function scream(x,z,k=1){const d=Math.hypot(x-P.p.x,z-P.p.z);if(d>260)return;const vol=.2*k*Math.min(1,80/Math.max(20,d));
+function scream(x,z,k=1){if(NET.open&&!NETG)netSend({t:'sc',x,z,k});const d=Math.hypot(x-P.p.x,z-P.p.z);if(d>260)return;const vol=.2*k*Math.min(1,80/Math.max(20,d));
  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const n=AC.currentTime,o=AC.createOscillator(),l=AC.createOscillator(),lg=AC.createGain(),g=AC.createGain(),f=AC.createBiquadFilter();
   o.type='sawtooth';o.frequency.setValueAtTime(650+rnd()*300,n);o.frequency.linearRampToValueAtTime(1400+rnd()*400,n+.35);o.frequency.linearRampToValueAtTime(850,n+.95);
   l.frequency.value=9;lg.gain.value=60;l.connect(lg);lg.connect(o.frequency);f.type='bandpass';f.frequency.value=1500;f.Q.value=2;
@@ -550,7 +551,7 @@ function ambStep(dt){amT+=dt;for(const b of BR){b.a+=b.sp*dt;b.g.position.set(Ma
  if(rnd()<dt*3&&B.length){const b=B[Math.floor(rnd()*B.length)];if(b.chimY&&Math.hypot(b.x-P.p.x,b.z-P.p.z)<140)puff(V(b.x+b.cx,b.chimY,b.z),1,1.1,0xdddddd)}}
 function roar(t){const d=Math.hypot(t.g.position.x-P.p.x,t.g.position.z-P.p.z);if(d>180)return;const k=Math.min(1,70/Math.max(25,d));sfx(55+rnd()*35,.7,'sawtooth',.28*k);sfx(130+rnd()*60,.4,'square',.1*k)}
 const holeM=M(0x1a1410);
-function dmgHouse(b,fx,fz,amt){if(b.keep)return false;b.hp=(b.hp==null?b.mhp:b.hp)-amt;
+function dmgHouse(b,fx,fz,amt){if(b.keep)return false;if(NET.open&&!NETG){if(b.ix==null)b.ix=ALL.indexOf(b);netSend({t:'hd',i:b.ix,fx,fz,amt})}b.hp=(b.hp==null?b.mhp:b.hp)-amt;
  if(b.hp<=0){collapse(b,fx,fz);shake=Math.max(shake,.4);sfx(80,.5,'sine',.3);return true}
  const f=1-b.hp/b.mhp,dx=fx-b.x,dz=fz-b.z,xf=Math.abs(dx)/b.w>Math.abs(dz)/b.d,sg=xf?Math.sign(dx||1):Math.sign(dz||1),
   px=xf?b.x+sg*b.w:b.x+(rnd()-.5)*b.w,pz=xf?b.z+(rnd()-.5)*b.d:b.z+sg*b.d,py=b.gy+1+rnd()*Math.max(1,b.h0-b.gy-3);
@@ -616,17 +617,19 @@ function joinRoom(){const code=($('jin').value||'').trim().toUpperCase();if(!cod
  netCleanup();NET.role='guest';let peer;try{peer=new Peer()}catch(e){netStatus('P2Pを開始できませんでした',1);return}NET.peer=peer;netStatus('接続中...');
  peer.on('open',()=>{const c=peer.connect('titanhunt-'+code);const to=setTimeout(()=>{if(!NET.open)netStatus('接続できませんでした（パスワードを確認してください）',1)},12000);setupConn(c,to)});
  peer.on('error',e=>netStatus(e&&e.type==='peer-unavailable'?'その部屋は見つかりません（パスワードを確認してください）':'エラー: '+(e&&e.type||'不明'),1))}
-function setupConn(c,to){NET.conn=c;const op=()=>{if(NET.open)return;if(to)clearTimeout(to);NET.open=true;try{c.send({t:'hi',n:NET.name})}catch(e){}netStatus('接続しました！');startGame()};
+function setupConn(c,to){NET.conn=c;const op=()=>{if(NET.open)return;if(to)clearTimeout(to);NET.open=true;try{c.send({t:'hi',n:NET.name})}catch(e){}netStatus('接続しました！');NETG=NET.role==='guest';startGame()};
  if(c.open)op();else c.on('open',op);c.on('data',onNet);c.on('close',onNetClose);c.on('error',()=>onNetClose())}
-function onNetClose(){if(!NET.open)return;NET.open=false;NET.conn=null;RM.on=false;if(RM.h)RM.h.g.visible=false;if(RM.tag)RM.tag.visible=false;if(RM.rope)RM.rope.visible=false;toast('相手が切断しました')}
+function onNetClose(){if(!NET.open)return;NETG=false;NET.open=false;NET.conn=null;RM.on=false;if(RM.h)RM.h.g.visible=false;if(RM.tag)RM.tag.visible=false;if(RM.rope)RM.rope.visible=false;toast('相手が切断しました')}
 function ensureRemote(){if(RM.h)return;RM.h=mkHuman();RM.h.g.visible=false;RM.h.cape.children[0].material.color.setHex(0x3a5a9a);RM.rope=new T.Line(new T.BufferGeometry().setFromPoints([V(),V()]),new T.LineBasicMaterial({color:0x222222}));RM.rope.frustumCulled=false;RM.rope.visible=false;S.add(RM.rope)}
-function onNet(d){if(!d||typeof d!=='object')return;
+function onNet(d){if(!d||typeof d!=='object')return;if(onNetW(d))return;
  if(d.t==='hi'){ensureRemote();RM.name=cleanName(d.n)||'プレイヤー';if(RM.tag)S.remove(RM.tag);RM.tag=makeTag(RM.name,'#8fd0ff');RM.on=true;RM.h.g.visible=true;toast('参加：'+RM.name)}
  else if(d.t==='s'){ensureRemote();const f=v=>Number.isFinite(v)?v:0;if(!RM.on)return;RM.tx=f(d.x);RM.ty=f(d.y);RM.tz=f(d.z);RM.r=f(d.r);RM.vx=f(d.vx);RM.vy=f(d.vy);RM.vz=f(d.vz);RM.g=d.g?1:0;RM.sl=d.sl?1:0;RM.sp=d.sp?1:0;RM.ga=d.ga?1:0;
   RM.a=Array.isArray(d.a)?V(f(d.a[0]),f(d.a[1]),f(d.a[2])):null;if(!RM.seen){RM.seen=1;RM.p.set(RM.tx,RM.ty,RM.tz)}}}
 function netTick(dt){if(LTAG&&started){LTAG.visible=true;placeTag(LTAG,H.g.position,3.4*(P.tf?P.tm.s*4:1))}
- if(!NET.conn||!NET.open)return;NET.acc+=dt;
- if(NET.acc>.066){NET.acc=0;const p=P.p,v=P.v,q=n=>+n.toFixed(2);try{NET.conn.send({t:'s',x:q(p.x),y:q(p.y),z:q(p.z),r:q(H.g.rotation.y),vx:q(v.x),vy:q(v.y),vz:q(v.z),g:P.g?1:0,sl:P.sl>0?1:0,sp:P.sp>0?1:0,ga:gasHeld?1:0,a:P.a?[q(P.a.pos.x),q(P.a.pos.y),q(P.a.pos.z)]:0})}catch(e){}}
+ if(!NET.conn||!NET.open)return;NET.acc+=dt;RMT.inv-=dt;
+ if(NET.acc>.066){NET.acc=0;const p=P.p,v=P.v,q=n=>+n.toFixed(2);netSend({t:'s',x:q(p.x),y:q(p.y),z:q(p.z),r:q(H.g.rotation.y),vx:q(v.x),vy:q(v.y),vz:q(v.z),g:P.g?1:0,sl:P.sl>0?1:0,sp:P.sp>0?1:0,ga:gasHeld?1:0,a:P.a?[q(P.a.pos.x),q(P.a.pos.y),q(P.a.pos.z)]:0})}
+ if(!NETG){NET.sacc=(NET.sacc||0)+dt;if(NET.sacc>.1){NET.sacc=0;netSend({t:'w',T:snapTitans(),C:snapCivs(),S:snapSols(),sc:score,at:ate})}}
+ else if(started){puppetTitans(dt);puppetCivs(dt);puppetSols(dt);if(P.sl>0)guestHits()}
  updateRemote(dt)}
 function updateRemote(dt){if(!RM.on||!RM.h)return;const g=RM.h.g,H2=RM.h,p=RM.p,k=Math.min(1,12*dt);
  p.x+=(RM.tx-p.x)*k;p.y+=(RM.ty-p.y)*k;p.z+=(RM.tz-p.z)*k;if(Math.hypot(RM.tx-p.x,RM.ty-p.y,RM.tz-p.z)>40)p.set(RM.tx,RM.ty,RM.tz);
@@ -640,7 +643,77 @@ function updateRemote(dt){if(!RM.on||!RM.h)return;const g=RM.h.g,H2=RM.h,p=RM.p,
  if(RM.ga&&rnd()<dt*25)puff(V(p.x,p.y+1,p.z),1,.5);
  RM.rope.visible=!!RM.a;if(RM.a){const a=RM.rope.geometry.attributes.position;a.setXYZ(0,p.x,p.y+1.4,p.z);a.setXYZ(1,RM.a.x,RM.a.y,RM.a.z);a.needsUpdate=true}
  if(RM.tag){RM.tag.visible=true;placeTag(RM.tag,p,3.4)}}
-function reset(){lockT=null;P.held=null;SM.length=0;DC.forEach(m=>S.remove(m));DC.length=0;SOL.forEach(q=>{q.alive=0;q.rt=rnd()*6;q.ct=0;q.h.g.rotation.x=0;q.h.g.visible=false;q.rp.visible=false});DB.length=0;CO.length=0;CV.forEach(c=>S.remove(c.g));CV.length=0;ate=0;idleT=0;for(let i=0;i<28;i++)spawnCiv();BL.forEach(b=>S.remove(b.m));BL.length=0;ammo=6;rel=0;if(P.tf)endTransform();P.tg=100;titans.forEach(t=>S.remove(t.g));titans=[];wave=0;score=0;B.length=0;ALL.forEach(b=>{b.m.forEach(o=>{o.visible=true;if(o.userData.y0!==undefined){o.position.y=o.userData.y0;o.scale.y=o.userData.s0;o.rotation.z=0}});if(b.rub){S.remove(b.rub);b.rub=null}(b.dm||[]).forEach(o=>S.remove(o));b.dm=[];b.hp=null;b.stg=0;if(b.ry0!=null){b.m[1].position.y=b.ry0;b.ry0=null}b.m[0].rotation.z=0;b.m[1].rotation.z=0;B.push(b)});
+/* ===== 世界の同期（ホストが計算、ゲストは表示＋攻撃の報告） ===== */
+let NETG=false,TID=1,CID=1,TG=[];const PT=new Map(),PC=new Map();
+const RMT={get alive(){return RM.on&&NET.open},p:RM.p,inv:0,remote:1};
+function netSend(m){if(NET.conn&&NET.open){try{NET.conn.send(m)}catch(e){}}}
+function makeTitan(x,z,runner,seed,kind){rnd=mulberry(seed);let t;try{t=mkTitan(x,z,runner)}finally{rnd=Math.random}
+ skinize(t);t.aR.scale.set(.85,1,.85);t.aL.scale.set(.85,1,.85);t.sp*=.8;t.sd=seed;t.kd=kind;t.id=TID++;t.g.traverse(o=>{if(o.isMesh&&o.material!==shM)o.castShadow=true});
+ if(kind===1){t.s=1.7+Math.random()*.5;t.g.scale.setScalar(t.s);t.sp=2.6+Math.random()*.8+wave*.15;t.hp=2;t.runner=false;toast('大型巨人が現れた！')}
+ else if(kind===2)armorize(t);else if(kind===3)colossalize(t);
+ else if(kind===4){t.frag=1;t.s=.5+Math.random()*.15;t.g.scale.setScalar(t.s);t.sp=5+Math.random()*2+wave*.2;t.skin.setHex(0xc9c2b8);t.lm.forEach(l=>l.color.setHex(0xc9c2b8));toast('脆い巨人が混ざっている！')}
+ return t}
+function rollKind(){const r=Math.random();if(r<.04)return 1;if(r<.055&&!titans.some(o=>o.arm&&!o.dead))return 2;if(r<.06&&!titans.some(o=>o.col&&!o.dead))return 3;if(r<.12)return 4;return 0}
+function spawnTitan(x,z,runner){const t=makeTitan(x,z,runner,Math.floor(Math.random()*1e9),rollKind());titans.push(t);return t}
+function applyHit(t,k){if(!t||t.dead)return;if(k==='f'){kill(t);return}
+ if(k==='n'){t.hp-=1;puff(t.nw,6,1,0xcc2222);if(t.hp<=0)kill(t)}
+ else if(k==='e'&&!t.arm){t.blind=4;t.wasB=1;t.em.color.setHex(0x6a1010);puff(t.ew,5,.8,0xcc2222)}
+ else if(k[0]==='l'&&!t.arm){const i=+k[1];t.cut[i]=9;t.lm[i].color.setHex(0xa03a30);puff(t.lw[i],6,1,0xcc2222)}}
+function snapTitans(){return titans.slice(0,18).map(t=>[t.id,+t.g.position.x.toFixed(1),+t.g.position.y.toFixed(1),+t.g.position.z.toFixed(1),+t.g.rotation.y.toFixed(2),t.st,t.at,t.dead?1:0,t.blind>0?1:0,t.cut[0]>0?1:0,t.cut[1]>0?1:0,t.armCut>0?1:0,+t.s.toFixed(2),t.sd,t.kd,t.runner?1:0,+t.ph.toFixed(2),+(Number.isFinite(t.aim)?t.aim:0).toFixed(2)])}
+function applyTitans(arr){const seen=new Set();for(const a of arr){const id=a[0];seen.add(id);let t=PT.get(id);
+  if(!t){muteT=1;try{t=makeTitan(a[1],a[3],!!a[15],a[13],a[14])}finally{muteT=0}t.id=id;PT.set(id,t);titans.push(t)}
+  t.tx=a[1];t.ty=a[2];t.tz=a[3];t.try=a[4];t.st=a[5];t.at=a[6];t.blind=a[8]?4:0;t.cut[0]=a[9]?9:0;t.cut[1]=a[10]?9:0;t.armCut=a[11]?9:0;t.aim=a[17];
+  if(t.s!==a[12]){t.s=a[12];t.g.scale.setScalar(a[12])}
+  if(a[7]&&!t.dead){t.dead=1;puff(t.nw,10,1.4);sfx(520,.3,'triangle',.15)}if(!a[7])t.dead=0}
+ for(const [id,t] of PT)if(!seen.has(id)){S.remove(t.g);PT.delete(id);const k=titans.indexOf(t);if(k>=0)titans.splice(k,1)}}
+function puppetTitans(dt){for(const t of titans){if(t.tx===undefined)continue;const g=t.g,k=Math.min(1,10*dt);
+  if(!t.pinit){t.pinit=1;g.position.set(t.tx,t.ty,t.tz);g.rotation.y=t.try;t.dd=0}
+  const ox=g.position.x,oz=g.position.z;g.position.x+=(t.tx-ox)*k;g.position.y+=(t.ty-g.position.y)*k;g.position.z+=(t.tz-oz)*k;
+  let da=t.try-g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));g.rotation.y+=da*Math.min(1,8*dt);
+  const spd=Math.hypot(g.position.x-ox,g.position.z-oz)/Math.max(dt,.001);t.ph+=dt*Math.min(spd,9)*.9;
+  const kneel=t.cut[0]>0&&t.cut[1]>0,blind=t.blind>0,sw=Math.sin(t.ph)*(t.runner?.9:.5)*(kneel?.1:1);
+  if(t.dead){t.dd+=dt;g.rotation.x=Math.min(t.dd*1.1,1.45);if(t.dd>1.2)g.position.y-=3*dt}else{t.dd=0;g.rotation.x=0}
+  t.lg.forEach((l,i)=>{const q=sw*(i?-1:1);l.rotation.x=q;l.k.rotation.x=Math.max(0,q)*1.1});if(kneel)t.lg.forEach(l=>{l.rotation.x=-1.4;l.k.rotation.x=1.6});
+  let ta=t.runner?-1.2+sw*.9:-sw*.8,tl=t.bl+(t.runner?.35:0),te=t.runner?-.9:-.3,tw=0;
+  if(blind&&t.st==0){ta=-2.4;te=-1.6;tl=.3}else if(t.st==1){if(t.at==1||t.at==5||t.at==4){ta=-2.8;te=-1}else if(t.at==3){ta=t.aim;te=-.1;tw=-1.1}tl=-.1}
+  else if(t.st==2){if(t.at==3){ta=t.aim;te=0;tw=1.1}else if(t.at!=2){ta=t.aim;te=0}tl=t.at==2?.2:.7}else if(t.st==3){if(t.at!=2)ta=t.aim*.6;te=-.2;tl=.4}
+  else if(t.st==4){ta=-2.2;te=-2;tl=.05}else if(t.st==5){ta=-2.3;te=-1.6;tl=.1}
+  const kk=Math.min(1,(t.st==2?30:9)*dt);t.aR.rotation.x+=(ta-t.aR.rotation.x)*kk;t.eR.rotation.x+=(te-t.eR.rotation.x)*kk;t.aL.rotation.x=blind?-2.4:sw*.8;t.eL.rotation.x=blind?-1.6:-.3;
+  t.up.rotation.x+=(tl-t.up.rotation.x)*Math.min(1,8*dt);t.up.rotation.y+=(tw-t.up.rotation.y)*Math.min(1,10*dt);t.aR.visible=!(t.armCut>0);
+  t.hd.rotation.y=blind?Math.sin(t.ph*9)*.35:Math.sin(t.ph*.3)*.25;
+  g.updateMatrixWorld(true);t.up.localToWorld(t.nw.copy(t.np));t.hd.localToWorld(t.ew.set(0,.35,1.8));t.lg.forEach((l,i)=>l.localToWorld(t.lw[i].set(0,-3.3,0)))}}
+function snapCivs(){return CV.filter(c=>c.alive).slice(0,40).map(c=>{c.id=c.id||(CID++);const g=c.g;return[c.id,+g.position.x.toFixed(1),+g.position.y.toFixed(1),+g.position.z.toFixed(1),+g.rotation.y.toFixed(2),c.fl?1:0]})}
+function applyCivs(arr){const seen=new Set();for(const a of arr){seen.add(a[0]);let c=PC.get(a[0]);if(!c){c=mkCiv(a[1],a[3],0,0);c.id=a[0];PC.set(a[0],c);CV.push(c);c.g.position.set(a[1],a[2],a[3])}
+  c.tx=a[1];c.ty=a[2];c.tz=a[3];c.try=a[4];c.fl=a[5];c.x=a[1];c.z=a[3];c.alive=1}
+ for(const [id,c] of PC)if(!seen.has(id)){S.remove(c.g);PC.delete(id);const k=CV.indexOf(c);if(k>=0)CV.splice(k,1)}}
+function puppetCivs(dt){for(const c of CV){if(c.tx===undefined)continue;const g=c.g,k=Math.min(1,12*dt),px=g.position.x,pz=g.position.z;
+  g.position.x+=(c.tx-px)*k;g.position.y+=(c.ty-g.position.y)*k;g.position.z+=(c.tz-pz)*k;let da=c.try-g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));g.rotation.y+=da*k;
+  const sp=Math.hypot(g.position.x-px,g.position.z-pz)/Math.max(dt,.001);c.ph+=dt*sp*3;const q=Math.sin(c.ph)*.7;c.l1.rotation.x=q;c.l2.rotation.x=-q;
+  c.a1.rotation.x=c.fl?-2.4+Math.sin(c.ph)*.4:-q*.8;c.a2.rotation.x=c.fl?-2.4-Math.sin(c.ph)*.4:q*.8}}
+function snapSols(){return SOL.map(q=>{const g=q.h.g,v=q.v;return[g.visible?1:0,+g.position.x.toFixed(1),+g.position.y.toFixed(1),+g.position.z.toFixed(1),+g.rotation.y.toFixed(2),+g.rotation.x.toFixed(2),+Math.hypot(v.x,v.z).toFixed(1),q.g?1:0,q.a?1:0,q.a?+q.a.x.toFixed(1):0,q.a?+q.a.y.toFixed(1):0,q.a?+q.a.z.toFixed(1):0,q.sl>0?1:0,q.alive?1:0,+v.y.toFixed(1)]})}
+function applySols(arr){arr.forEach((a,i)=>{const q=SOL[i];if(!q)return;q.vis=a[0];q.tx=a[1];q.ty=a[2];q.tz=a[3];q.try=a[4];q.rx=a[5];q.hs=a[6];q.g=!!a[7];q.a=a[8]?V(a[9],a[10],a[11]):null;q.sl=a[12]?.28:0;q.alive=a[13];q.vy=a[14]})}
+function puppetSols(dt){for(const q of SOL){if(q.tx===undefined)continue;const g=q.h.g,H2=q.h;g.visible=!!q.vis;if(!q.vis){q.rp.visible=false;continue}
+  const k=Math.min(1,12*dt);g.position.x+=(q.tx-g.position.x)*k;g.position.y+=(q.ty-g.position.y)*k;g.position.z+=(q.tz-g.position.z)*k;q.p.copy(g.position);
+  let da=q.try-g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));g.rotation.y+=da*k;q.ph=(q.ph||0)+dt*q.hs*1.1;const s1=q.g?Math.sin(q.ph)*.9*Math.min(1,q.hs/9):0;
+  if(!q.alive){g.rotation.x=q.rx;q.rp.visible=false;continue}
+  if(q.g){H2.lR.rotation.x=s1;H2.lL.rotation.x=-s1;H2.kR.rotation.x=Math.max(0,s1)*1.3;H2.kL.rotation.x=Math.max(0,-s1)*1.3;H2.aR.rotation.x=-s1*.8;H2.aL.rotation.x=s1*.8;H2.eR.rotation.x=H2.eL.rotation.x=-1;g.rotation.x=.1}
+  else{H2.lR.rotation.x=-.5;H2.kR.rotation.x=1.1;H2.lL.rotation.x=.25;H2.kL.rotation.x=.5;H2.aR.rotation.x=q.a?-2.7:.5;H2.aL.rotation.x=q.a?-2.7:-.5;H2.eR.rotation.x=H2.eL.rotation.x=-.3;g.rotation.x=Math.min(.8,q.hs/35)}
+  if(q.sl>0){H2.ub.rotation.y=-1.1+1.1;H2.aR.rotation.x=-1.5}else H2.ub.rotation.y*=.85;
+  q.rp.visible=!!q.a;if(q.a){const a=q.rp.geometry.attributes.position;a.setXYZ(0,g.position.x,g.position.y+1.4,g.position.z);a.setXYZ(1,q.a.x,q.a.y,q.a.z);a.needsUpdate=true}}}
+function guestHits(){const p=P.p,pc=V(p.x,p.y+1,p.z);for(const t of titans){if(t.dead||t.tx===undefined)continue;const s=t.s;
+  if(t.frag){if(t.lastN!==sid&&[t.nw,t.ew,t.lw[0],t.lw[1]].some(q=>hitD(pc,q)<2+s)){t.lastN=sid;netSend({t:'hit',id:t.id,k:'f'})}continue}
+  if(t.lastN!==sid&&behind(t,p)&&hitD(pc,t.nw)<1.4+1.1*s){t.lastN=sid;netSend({t:'hit',id:t.id,k:'n'});puff(t.nw,5,1,0xcc2222);toast('命中！')}
+  if(!t.arm&&t.lastE!==sid&&!behind(t,p)&&hitD(pc,t.ew)<1.3+.8*s){t.lastE=sid;netSend({t:'hit',id:t.id,k:'e'});toast('目を潰した！')}
+  for(let i=0;i<2;i++)if(!t.arm&&t.lastL[i]!==sid&&hitD(pc,t.lw[i])<1.8+1.2*s){t.lastL[i]=sid;netSend({t:'hit',id:t.id,k:'l'+i});toast('足を切った！')}}}
+function onNetW(d){switch(d.t){
+ case'w':if(NETG){applyTitans(d.T||[]);applyCivs(d.C||[]);applySols(d.S||[]);score=d.sc|0;ate=d.at|0}return true;
+ case'hd':{const b=ALL[d.i];if(NETG&&b){const dead=dmgHouse(b,d.fx,d.fz,d.amt);if(dead){const k=B.indexOf(b);if(k>=0)B.splice(k,1)}}return true}
+ case'sc':scream(d.x,d.z,d.k);return true;
+ case'hurt':hurt(d.fx||0,d.fz||0);return true;
+ case'hit':if(!NETG)applyHit(titans.find(x=>x.id===d.id),d.k);return true;
+ case'rs':if(NETG)reset();return true}
+ return false}
+function reset(){if(NET.open&&!NETG)netSend({t:'rs'});PT.clear();PC.clear();lockT=null;P.held=null;SM.length=0;DC.forEach(m=>S.remove(m));DC.length=0;SOL.forEach(q=>{q.alive=0;q.rt=rnd()*6;q.ct=0;q.h.g.rotation.x=0;q.h.g.visible=false;q.rp.visible=false});DB.length=0;CO.length=0;CV.forEach(c=>S.remove(c.g));CV.length=0;ate=0;idleT=0;for(let i=0;i<28;i++)spawnCiv();BL.forEach(b=>S.remove(b.m));BL.length=0;ammo=6;rel=0;if(P.tf)endTransform();P.tg=100;titans.forEach(t=>S.remove(t.g));titans=[];wave=0;score=0;B.length=0;ALL.forEach(b=>{b.m.forEach(o=>{o.visible=true;if(o.userData.y0!==undefined){o.position.y=o.userData.y0;o.scale.y=o.userData.s0;o.rotation.z=0}});if(b.rub){S.remove(b.rub);b.rub=null}(b.dm||[]).forEach(o=>S.remove(o));b.dm=[];b.hp=null;b.stg=0;if(b.ry0!=null){b.m[1].position.y=b.ry0;b.ry0=null}b.m[0].rotation.z=0;b.m[1].rotation.z=0;B.push(b)});
  Object.assign(P,{hp:7,gas:100,inv:0,a:null,sl:0,slc:0,g:true});P.p.set(126,gh(126,18),18);P.v.set(0,0,0);yaw=-Math.PI/2;rope.visible=false;spawn()}
 $('go').onclick=()=>{if(lite){sun.castShadow=false;R.setPixelRatio(1);R.setSize(innerWidth,innerHeight)}if(!started){reset();started=true}$('ov').style.display='none';run=true};
 function step(dt){
@@ -663,7 +736,7 @@ function step(dt){
     if(px<pz){p.x+=p.x<b.x?-px:px;v.x=0}else{p.z+=p.z<b.z?-pz:pz;v.z=0}}}}
  const gy0=gh(p.x,p.z);if(p.y<=gy0+(pg&&v.y<=0&&!P.a?.7:0)){p.y=gy0;if(v.y<0)v.y=0;P.g=true}
  wallClamp(p);
- }const pc=new T.Vector3(p.x,p.y+(P.tf?6*P.tm.s:1),p.z);titanStep(dt,pc);bulletStep(dt);civStep(dt);ensureAction(dt);debrisStep(dt);solStep(dt);
+ }const pc=new T.Vector3(p.x,p.y+(P.tf?6*P.tm.s:1),p.z);if(!NETG){titanStep(dt,pc);bulletStep(dt);civStep(dt);ensureAction(dt);solStep(dt)}debrisStep(dt);
  for(const t of []){const g=t.g;
   if(t.dead){t.dt+=dt;g.rotation.x=Math.min(t.dt*1.1,1.45);if(t.dt>1.2)g.position.y-=3*dt;if(rnd()<dt*14)puff(g.localToWorld(new T.Vector3(0,9,0)),1,1.5);continue}
   const dx=p.x-g.position.x,dz=p.z-g.position.z,L=Math.hypot(dx,dz)||1;
@@ -681,7 +754,7 @@ function step(dt){
   g.updateMatrixWorld(true);t.up.localToWorld(t.nw.copy(NAPE));
   if(P.sl>0&&t.nw.distanceTo(pc)<8)kill(t)}
  for(let i=titans.length-1;i>=0;i--)if(titans[i].dead&&titans[i].dt>2.5){S.remove(titans[i].g);titans.splice(i,1)}
- infSpawn(dt);
+ if(!NETG)infSpawn(dt);
  for(const q of pool)if(q.l>0){q.l-=dt;q.m.position.addScaledVector(q.v,dt);const k=Math.max(0,q.l/q.L);q.m.scale.setScalar(q.r*(2-k)*.8);q.m.material.opacity=k*.6;if(q.l<=0)q.m.visible=false}
 }
 function gameOver(){started=false;const o=$('ov');o.style.display='flex';o.querySelector('h1').textContent='敗北… 討伐数 '+score;$('go').textContent='もう一度'}
@@ -703,9 +776,9 @@ function renderOld(dt){
  let nt=null,nd=1e9;for(const t of al){const d=Math.hypot(t.g.position.x-p.x,t.g.position.z-p.z);if(d<nd){nd=d;nt=t}}
  $('ar').style.display=nt&&run?'block':'none';
  if(nt){const dx=nt.g.position.x-p.x,dz=nt.g.position.z-p.z;$('ar').style.transform=`rotate(${Math.atan2(dx*Math.cos(yaw)-dz*Math.sin(yaw),-dx*Math.sin(yaw)-dz*Math.cos(yaw))}rad)`}
- netTick(dt);R.render(S,C)}
+ R.render(S,C)}
 let last=performance.now();
 (function loop(n){requestAnimationFrame(loop);const dt=Math.min(.05,(n-last)/1000);last=n;slow=Math.max(0,slow-dt);if(run&&!mapOpen)step(dt*(slow>0?.3:1));if(mapOpen&&run)drawMap();netTick(dt);render(dt)})(last);
-showHome();
+rnd=Math.random;showHome();
 addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()});
 </script></body></html>
