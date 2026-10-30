@@ -703,7 +703,7 @@ function renderOld(dt){
  let nt=null,nd=1e9;for(const t of al){const d=Math.hypot(t.g.position.x-p.x,t.g.position.z-p.z);if(d<nd){nd=d;nt=t}}
  $('ar').style.display=nt&&run?'block':'none';
  if(nt){const dx=nt.g.position.x-p.x,dz=nt.g.position.z-p.z;$('ar').style.transform=`rotate(${Math.atan2(dx*Math.cos(yaw)-dz*Math.sin(yaw),-dx*Math.sin(yaw)-dz*Math.cos(yaw))}rad)`}
- R.render(S,C)}
+ netTick(dt);R.render(S,C)}
 let last=performance.now();
 (function loop(n){requestAnimationFrame(loop);const dt=Math.min(.05,(n-last)/1000);last=n;slow=Math.max(0,slow-dt);if(run&&!mapOpen)step(dt*(slow>0?.3:1));if(mapOpen&&run)drawMap();netTick(dt);render(dt)})(last);
 showHome();
